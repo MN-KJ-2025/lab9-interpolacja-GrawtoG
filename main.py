@@ -1,29 +1,29 @@
 # =================================  TESTY  ===================================
 # Testy do tego pliku obejmują jedynie weryfikację poprawności wyników dla
 # prawidłowych danych wejściowych - obsługa niepoprawych danych wejściowych
-# nie jest ani wymagana ani sprawdzana. W razie potrzeby lub chęci można ją 
+# nie jest ani wymagana ani sprawdzana. W razie potrzeby lub chęci można ją
 # wykonać w dowolny sposób we własnym zakresie.
 # =============================================================================
 import numpy as np
-from math import cos,pi
+
 
 def chebyshev_nodes(n: int = 10) -> np.ndarray | None:
-    """Funkcja generująca wektor węzłów Czebyszewa drugiego rodzaju (n,) 
+    """Funkcja generująca wektor węzłów Czebyszewa drugiego rodzaju (n,)
     i (NIE )sortująca wynik od najmniejszego do największego węzła.
 
     Args:
         n (int): Liczba węzłów Czebyszewa.
-    
+
     Returns:
         (np.ndarray): Wektor węzłów Czebyszewa (n,).
         Jeżeli dane wejściowe są niepoprawne funkcja zwraca `None`.
     """
-    if not isinstance(n,int) or n<=0:
+    if not isinstance(n, int) or n <= 0:
         return None
     # xk=[]
     # for k in range(n+1):
     #     xk.append(cos(k*pi/(n-1)))
-    xk=np.cos((np.arange(n)*np.pi)/(n-1))
+    xk = np.cos((np.arange(n) * np.pi) / (n - 1))
     return xk
 
 
@@ -32,29 +32,26 @@ def bar_cheb_weights(n: int = 10) -> np.ndarray | None:
 
     Args:
         n (int): Liczba wag węzłów Czebyszewa.
-    
+
     Returns:
         (np.ndarray): Wektor wag dla węzłów Czebyszewa (n,).
         Jeżeli dane wejściowe są niepoprawne funkcja zwraca `None`.
     """
-    if not isinstance(n,int) or n<=0:
-        return None
-       
-    xk=[0.5]
-    t=1
+    w = np.empty(n, dtype=float)
     for k in range(n):
-        xk.append((t:=-t))
-
-    return xk.append(t*0.5)
-
+        if k == 0 or k == n - 1:
+            w[k] = 0.5 * ((-1) ** k)
+        else:
+            w[k] = (-1) ** k
+    return w
 
 
 def barycentric_inte(
     xi: np.ndarray, yi: np.ndarray, wi: np.ndarray, x: np.ndarray
 ) -> np.ndarray | None:
-    """Funkcja przeprowadza interpolację metodą barycentryczną dla zadanych 
-    węzłów xi i wartości funkcji interpolowanej yi używając wag wi. Zwraca 
-    wyliczone wartości funkcji interpolującej dla argumentów x w postaci 
+    """Funkcja przeprowadza interpolację metodą barycentryczną dla zadanych
+    węzłów xi i wartości funkcji interpolowanej yi używając wag wi. Zwraca
+    wyliczone wartości funkcji interpolującej dla argumentów x w postaci
     wektora (n,).
 
     Args:
@@ -62,14 +59,36 @@ def barycentric_inte(
         yi (np.ndarray): Wektor wartości funkcji interpolowanej w węzłach (m,).
         wi (np.ndarray): Wektor wag interpolacji (m,).
         x (np.ndarray): Wektor argumentów dla funkcji interpolującej (n,).
-    
+
     Returns:
         (np.ndarray): Wektor wartości funkcji interpolującej (n,).
         Jeżeli dane wejściowe są niepoprawne funkcja zwraca `None`.
     """
-    if not (isinstance(xi,np.array) or isinstance(yi,np.array) or isinstance(wi,np.array) or isinstance(x,np.array)):
+    if not (
+        isinstance(xi, np.ndarray)
+        and isinstance(yi, np.ndarray)
+        and isinstance(wi, np.ndarray)
+        and isinstance(x, np.ndarray)
+    ):
         return None
-    
+
+    if not (len(xi) == len(yi) == len(wi)):
+        return None
+
+    result = []
+
+    for xv in np.nditer(x):
+        for j in range(len(xi)):
+            if xv == xi[j]:
+                result.append(float(yi[j]))
+                break
+        else:
+            L = wi / (xv - xi)
+            result.append(float(yi @ L / np.sum(L)))
+
+    return np.asarray(result)
+
+
 # n->len(x)
 # x->xi
 # c->wi
@@ -91,35 +110,43 @@ def barycentric_inte(
 # end
 # ff = numer./denom;
 # plot(x,f,’.’,xx,ff,’-’)
-    
-    numer = np.zeros(len(x))
-    denom = np.zeros(len(x))
-    for j in range(1,n+1):
-        xdiff = x-xi(j)
-        temp = wi(j)/xdiff
-        numer = numer + temp*f(j)
-        denom = denom + temp
-    ff = numer/denom
-    
-     
+
+# numer = np.zeros(len(x))
+# denom = np.zeros(len(x))
+# for j in range(1,n+1):
+#     xdiff = x-xi(j)
+#     temp = wi(j)/xdiff
+#     numer = numer + temp*f(j)
+#     denom = denom + temp
+# ff = numer/denom
+
+
 def L_inf(
     xr: int | float | list | np.ndarray, x: int | float | list | np.ndarray
 ) -> float | None:
-    """Funkcja obliczająca normę L-nieskończoność. Powinna działać zarówno na 
+    """Funkcja obliczająca normę L-nieskończoność. Powinna działać zarówno na
     wartościach skalarnych, listach, jak i wektorach biblioteki numpy.
 
     Args:
-        xr (int | float | list | np.ndarray): Wartość dokładna w postaci 
+        xr (int | float | list | np.ndarray): Wartość dokładna w postaci
             skalara, listy lub wektora (n,).
-        x (int | float | list | np.ndarray): Wartość przybliżona w postaci 
+        x (int | float | list | np.ndarray): Wartość przybliżona w postaci
             skalara, listy lub wektora (n,).
 
     Returns:
         (float): Wartość normy L-nieskończoność.
         Jeżeli dane wejściowe są niepoprawne funkcja zwraca `None`.
     """
-    if not (isinstance(xr,int) or isinstance(xr,float) or isinstance(xr,list),isinstance(xr,nd.array) ):
+    x = np.asarray(x)
+    xr = np.asarray(xr)
+    if not (
+        isinstance(xr, int) or isinstance(xr, float) or isinstance(xr, list),
+        isinstance(xr, np.ndarray),
+    ):
         return None
-    if not (isinstance(x,int) or isinstance(x,float) or isinstance(x,list),isinstance(x,nd.array) ):
+    if not (
+        isinstance(x, int) or isinstance(x, float) or isinstance(x, list),
+        isinstance(x, np.ndarray),
+    ):
         return None
-    return np.max(np.abs(xr-x))
+    return np.max(np.abs(xr - x))
